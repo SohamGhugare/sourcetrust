@@ -1,40 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# SourceTrust: AI Dataset Marketplace with Story Protocol Integration
 
-## Getting Started
+## Technical Overview
 
-First, run the development server:
+SourceTrust is a decentralized marketplace for AI datasets, leveraging Story Protocol for intellectual property registration and protection. The application is built using Next.js, TypeScript, and integrates with blockchain technologies.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Core Technologies
+
+- **Frontend**: Next.js, TypeScript, TailwindCSS
+- **Blockchain**: Story Protocol SDK, Wagmi, Viem
+- **Storage**: IPFS via Pinata
+- **Authentication**: MetaMask Wallet
+
+## Key Components
+
+### 1. Wallet Integration (`src/components/WalletButton.tsx`)
+- Implements MetaMask wallet connection
+- Handles wallet state management
+- Provides wallet address display and disconnection
+- Uses Wagmi hooks for Web3 interactions
+
+### 2. Marketplace Page (`src/pages/marketplace.tsx`)
+- Core functionality for dataset management
+- Implements Story Protocol IP registration
+- Features:
+  - Dataset listing
+  - Dataset addition
+  - IP registration
+  - IPFS metadata storage
+
+### 3. IPFS Integration (`src/utils/uploadToIpfs.ts`)
+- Handles metadata upload to IPFS
+- Uses Pinata SDK for reliable IPFS storage
+- Returns IPFS hashes for metadata URIs
+
+## Implementation Details
+
+### Story Protocol Integration
+
+```typescript
+const registerDatasetAsIP = async (dataset: NewDataset) => {
+  const client = await setupStoryClient();
+  
+  // Generate metadata
+  const ipMetadata = client.ipAsset.generateIpMetadata({
+    title: dataset.name,
+    description: dataset.description,
+    ipType: 'dataset',
+    attributes: [{ key: 'Category', value: dataset.category }],
+    creators: [{
+      name: 'Dataset Owner',
+      contributionPercent: 100,
+      address: wallet?.account.address as Address,
+    }],
+  });
+
+  // Upload to IPFS and register IP
+  const ipIpfsHash = await uploadJSONToIPFS(ipMetadata);
+  const ipHash = createHash('sha256').update(JSON.stringify(ipMetadata)).digest('hex');
+  
+  const response = await client.ipAsset.mintAndRegisterIp({
+    spgNftContract: "0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc",
+    recipient: wallet?.account.address as Address,
+    ipMetadata: {
+      ipMetadataURI: `https://ipfs.io/ipfs/${ipIpfsHash}`,
+      ipMetadataHash: `0x${ipHash}`,
+      // ... additional metadata
+    },
+  });
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Configuration
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+Required environment variables:
+```env
+NEXT_PUBLIC_SPG_NFT_CONTRACT_ADDRESS=0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc
+NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt_here
+```
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## Setup Instructions
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. Configure environment variables:
+   - Copy `.env.example` to `.env.local`
+   - Add required API keys and contract addresses
 
-To learn more about Next.js, take a look at the following resources:
+3. Run development server:
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Data Flow
+1. User connects wallet
+2. Creates dataset entry
+3. Metadata generated and uploaded to IPFS
+4. IP registered through Story Protocol
+5. NFT minted to user's wallet
+6. UI updated with new dataset
 
-## Deploy on Vercel
+### Security Considerations
+- Wallet connection required for sensitive operations
+- Metadata hashing for integrity
+- IPFS for decentralized storage
+- Smart contract security through Story Protocol
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contract Addresses
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+- SPG NFT Contract (Aeneid): `0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc`
+
+## Future Enhancements
+
+1. Dataset search and filtering
+2. Advanced metadata management
+3. Dataset version control
+4. Access control mechanisms
+5. Dataset analytics
+
+## Dependencies
+
+Core dependencies:
+- @story-protocol/core-sdk
+- wagmi
+- viem
+- pinata-web3
+- ethers
+- next
+- react
+- tailwindcss
